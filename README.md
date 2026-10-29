@@ -29,10 +29,11 @@ permissões, telas e fluxo de navegação) está em **[docs/PROPOSTA.md](docs/PR
 
 ## Como executar
 
-Pré-requisitos: Node.js 20 ou mais recente e o app **Expo Go** no celular (ou um navegador).
+Pré-requisitos: Node.js 22.13 ou mais recente (exigido pelo Expo SDK 58) e o app **Expo Go**
+no celular (ou um navegador).
 
 ```bash
-npm install
+npm ci                # instala as versões exatas do package-lock.json
 npx expo start        # abre o menu do Expo: leia o QR Code com o Expo Go
 # ou
 npm run web           # abre no navegador
