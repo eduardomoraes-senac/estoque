@@ -137,7 +137,9 @@ export default function App() {
               {/* Telas exclusivas do responsável. Na Entrega 3 o back-end também vai bloquear essas ações. */}
               {ehResponsavel && <Stack.Group>
                 <Stack.Screen name="FormularioItem" options={function opcoesFormulario({ route }) {
-                  return { title: route.params && route.params.id ? 'Editar item' : 'Novo item' };
+                  // Só o botão "Editar" envia { id }; o "in" confere se o parâmetro existe.
+                  const editando = route.params !== undefined && 'id' in route.params;
+                  return { title: editando ? 'Editar item' : 'Novo item' };
                 }}>
                   {function telaFormulario(props) { return <FormularioItem {...props} itens={itens} salvarItem={salvarItem} />; }}
                 </Stack.Screen>
