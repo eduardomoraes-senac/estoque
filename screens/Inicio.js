@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 import CartaoItem from '../components/CartaoItem.js';
-import { Botao, Pagina, Painel, Selo, cores, estilos } from '../components/ui.js';
+import { Botao, EstadoDados, Pagina, Painel, Selo, cores, estilos } from '../components/ui.js';
 import { DIAS_ALERTA_VALIDADE, diasParaVencer, estaAbaixoDoMinimo } from '../data/estoque.js';
 
-export default function Inicio({ navigation, usuario, itens, listaCompras, sair }) {
+export default function Inicio({ navigation, usuario, itens, listaCompras, sair, carregandoItens, erroItens, recarregarItens }) {
   const vencendo = itens.filter(function validadeProxima(item) {
     const dias = diasParaVencer(item.validade);
     return dias !== null && dias <= DIAS_ALERTA_VALIDADE;
@@ -14,6 +14,8 @@ export default function Inicio({ navigation, usuario, itens, listaCompras, sair 
   // "Atenção agora": itens vencendo primeiro, depois os que estão acabando (sem repetir).
   const atencao = vencendo.concat(baixos.filter(function naoRepetido(item) { return !vencendo.includes(item); })).slice(0, 4);
   const ehResponsavel = usuario.nivel === 'responsavel';
+  // Sem dados e com carregamento ou erro, mostrar "tudo em dia" seria uma informação falsa.
+  const semDados = itens.length === 0 && (carregandoItens || erroItens !== '');
 
   function abrirItem(id) { navigation.navigate('DetalhesItem', { id }); }
 
@@ -27,20 +29,24 @@ export default function Inicio({ navigation, usuario, itens, listaCompras, sair 
         </View>
       </View>
 
-      <View style={css.resumo}>
-        <Resumo numero={vencendo.length} rotulo="vencidos ou vencendo" cor={cores.vermelho} />
-        <Resumo numero={baixos.length} rotulo="com estoque baixo" cor={cores.ambar} />
-        <Resumo numero={pendentes.length} rotulo="na lista de compras" cor={cores.oliva} />
-      </View>
+      <EstadoDados carregando={semDados && carregandoItens} erro={erroItens} aoTentarNovamente={recarregarItens} />
 
-      <Painel>
-        <Text style={estilos.etiqueta}>Atenção agora</Text>
-        {atencao.length === 0
-          ? <Text style={estilos.subtitulo}>Tudo em dia por aqui. 🎉</Text>
-          : atencao.map(function cartao(item) {
-            return <CartaoItem key={item.id} item={item} onPress={function () { abrirItem(item.id); }} />;
-          })}
-      </Painel>
+      {!semDados && <>
+        <View style={css.resumo}>
+          <Resumo numero={vencendo.length} rotulo="vencidos ou vencendo" cor={cores.vermelho} />
+          <Resumo numero={baixos.length} rotulo="com estoque baixo" cor={cores.ambar} />
+          <Resumo numero={pendentes.length} rotulo="na lista de compras" cor={cores.oliva} />
+        </View>
+
+        <Painel>
+          <Text style={estilos.etiqueta}>Atenção agora</Text>
+          {atencao.length === 0
+            ? <Text style={estilos.subtitulo}>Tudo em dia por aqui. 🎉</Text>
+            : atencao.map(function cartao(item) {
+              return <CartaoItem key={item.id} item={item} onPress={function () { abrirItem(item.id); }} />;
+            })}
+        </Painel>
+      </>}
 
       <Botao titulo="Ver estoque completo" onPress={function () { navigation.navigate('Estoque'); }} />
       <Botao titulo="Lista de compras" variante="secundario" onPress={function () { navigation.navigate('ListaCompras'); }} />

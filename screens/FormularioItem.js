@@ -16,8 +16,9 @@ export default function FormularioItem({ navigation, route, itens, salvarItem })
   const [minimo, setMinimo] = useState(existente ? String(existente.estoqueMinimo) : '1');
   const [validade, setValidade] = useState(existente && existente.validade ? formatarData(existente.validade) : '');
   const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
 
-  function salvar() {
+  async function salvar() {
     const qtd = Number(quantidade);
     const min = Number(minimo);
     if (nome.trim().length < 2) { setErro('Informe o nome do item.'); return; }
@@ -26,8 +27,16 @@ export default function FormularioItem({ navigation, route, itens, salvarItem })
     const validadeISO = validade.trim() ? lerDataDigitada(validade) : '';
     if (validadeISO === null) { setErro('Validade inválida. Use o formato DD/MM/AAAA.'); return; }
 
-    salvarItem({ id: existente ? existente.id : undefined, nome: nome.trim(), categoria, local, unidade, quantidade: qtd, estoqueMinimo: min, validade: validadeISO });
-    navigation.goBack();
+    // O botão fica desativado enquanto espera a API, para não cadastrar o mesmo item duas vezes.
+    setErro('');
+    setSalvando(true);
+    try {
+      await salvarItem({ id: existente ? existente.id : undefined, nome: nome.trim(), categoria, local, unidade, quantidade: qtd, estoqueMinimo: min, validade: validadeISO });
+      navigation.goBack();
+    } catch (falha) {
+      setErro(falha.message);
+      setSalvando(false);
+    }
   }
 
   return (
@@ -43,7 +52,7 @@ export default function FormularioItem({ navigation, route, itens, salvarItem })
           dica="Abaixo deste número o item aparece como estoque baixo." />
         <Campo rotulo="Validade (opcional)" value={validade} onChangeText={setValidade} placeholder="DD/MM/AAAA"
           keyboardType="numbers-and-punctuation" dica="Deixe em branco para itens sem validade." />
-        <Botao titulo={existente ? 'Salvar alterações' : 'Cadastrar item'} onPress={salvar} />
+        <Botao titulo={salvando ? 'Salvando…' : (existente ? 'Salvar alterações' : 'Cadastrar item')} onPress={salvar} disabled={salvando} />
         <Botao titulo="Cancelar" variante="secundario" onPress={function () { navigation.goBack(); }} />
       </Painel>
     </Pagina>

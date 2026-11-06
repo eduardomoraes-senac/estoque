@@ -1,17 +1,11 @@
-// Dados de exemplo e funções auxiliares do estoque.
-// Na Entrega 1 os dados ficam em memória. Na Entrega 2 eles virão da API (MySQL) via fetch().
+// Opções e regras do estoque, mais os dados que ainda ficam em memória.
+// Os itens já vêm da API (MySQL). Contas e lista de compras passam para a API na Entrega 3.
 
+// Mesmas opções das colunas ENUM do banco e de backend/utils/validacoes.js.
 export const CATEGORIAS = ['Alimentos', 'Bebidas', 'Limpeza', 'Higiene'];
 export const LOCAIS = ['Armário', 'Geladeira', 'Freezer', 'Lavanderia', 'Banheiro'];
 export const UNIDADES = ['un', 'pacote', 'caixa', 'kg', 'litro', 'garrafa'];
 export const DIAS_ALERTA_VALIDADE = 7;
-
-// Gera uma data "AAAA-MM-DD" a partir de hoje, para que os exemplos sempre tenham alertas.
-function diasAPartirDeHoje(dias) {
-  const data = new Date();
-  data.setDate(data.getDate() + dias);
-  return paraISO(data);
-}
 
 function paraISO(data) {
   const mes = String(data.getMonth() + 1).padStart(2, '0');
@@ -24,20 +18,6 @@ export const membrosIniciais = [
   { id: 1, nome: 'Ana Souza', email: 'ana@familia.com', nivel: 'responsavel' },
   { id: 2, nome: 'Pedro Souza', email: 'pedro@familia.com', nivel: 'membro' },
   { id: 3, nome: 'Lia Souza', email: 'lia@familia.com', nivel: 'membro' },
-];
-
-export const itensIniciais = [
-  { id: 1, nome: 'Leite integral', categoria: 'Bebidas', local: 'Geladeira', quantidade: 2, unidade: 'litro', estoqueMinimo: 3, validade: diasAPartirDeHoje(3) },
-  { id: 2, nome: 'Arroz', categoria: 'Alimentos', local: 'Armário', quantidade: 4, unidade: 'kg', estoqueMinimo: 2, validade: diasAPartirDeHoje(180) },
-  { id: 3, nome: 'Feijão carioca', categoria: 'Alimentos', local: 'Armário', quantidade: 1, unidade: 'kg', estoqueMinimo: 2, validade: diasAPartirDeHoje(120) },
-  { id: 4, nome: 'Iogurte natural', categoria: 'Alimentos', local: 'Geladeira', quantidade: 4, unidade: 'un', estoqueMinimo: 2, validade: diasAPartirDeHoje(-1) },
-  { id: 5, nome: 'Peito de frango', categoria: 'Alimentos', local: 'Freezer', quantidade: 2, unidade: 'kg', estoqueMinimo: 1, validade: diasAPartirDeHoje(40) },
-  { id: 6, nome: 'Pão de forma', categoria: 'Alimentos', local: 'Armário', quantidade: 1, unidade: 'pacote', estoqueMinimo: 1, validade: diasAPartirDeHoje(5) },
-  { id: 7, nome: 'Detergente', categoria: 'Limpeza', local: 'Lavanderia', quantidade: 1, unidade: 'un', estoqueMinimo: 2, validade: '' },
-  { id: 8, nome: 'Sabão em pó', categoria: 'Limpeza', local: 'Lavanderia', quantidade: 1, unidade: 'caixa', estoqueMinimo: 1, validade: '' },
-  { id: 9, nome: 'Papel higiênico', categoria: 'Higiene', local: 'Banheiro', quantidade: 12, unidade: 'un', estoqueMinimo: 8, validade: '' },
-  { id: 10, nome: 'Creme dental', categoria: 'Higiene', local: 'Banheiro', quantidade: 0, unidade: 'un', estoqueMinimo: 1, validade: diasAPartirDeHoje(300) },
-  { id: 11, nome: 'Suco de uva', categoria: 'Bebidas', local: 'Armário', quantidade: 3, unidade: 'garrafa', estoqueMinimo: 1, validade: diasAPartirDeHoje(90) },
 ];
 
 export const listaComprasInicial = [

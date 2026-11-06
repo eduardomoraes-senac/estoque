@@ -5,6 +5,8 @@ import { formatarData, situacaoItem } from '../data/estoque.js';
 
 export default function DetalhesItem({ navigation, route, usuario, itens, registrarConsumo, excluirItem, adicionarCompra }) {
   const [mensagem, setMensagem] = useState('');
+  const [tipoMensagem, setTipoMensagem] = useState('sucesso');
+  const [ocupado, setOcupado] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   // O id chega pelos parâmetros da rota: navigation.navigate('DetalhesItem', { id }).
   const item = itens.find(function porId(registro) { return registro.id === route.params.id; });
@@ -17,18 +19,36 @@ export default function DetalhesItem({ navigation, route, usuario, itens, regist
   const situacao = situacaoItem(item);
   const ehResponsavel = usuario.nivel === 'responsavel';
 
-  function usarUm() {
-    registrarConsumo(item.id);
-    setMensagem(item.quantidade - 1 <= 0 ? 'Último item usado! Que tal colocar na lista de compras?' : 'Consumo registrado.');
+  function avisar(texto, tipo) {
+    setMensagem(texto);
+    setTipoMensagem(tipo);
+  }
+
+  async function usarUm() {
+    setOcupado(true);
+    try {
+      const atualizado = await registrarConsumo(item.id);
+      avisar(atualizado.quantidade === 0 ? 'Último item usado! Que tal colocar na lista de compras?' : 'Consumo registrado.', 'sucesso');
+    } catch (falha) {
+      avisar(falha.message, 'erro');
+    } finally {
+      setOcupado(false);
+    }
   }
 
   function colocarNaLista() {
-    setMensagem(adicionarCompra(item.nome) ? 'Adicionado à lista de compras.' : 'Esse item já está na lista de compras.');
+    avisar(adicionarCompra(item.nome) ? 'Adicionado à lista de compras.' : 'Esse item já está na lista de compras.', 'sucesso');
   }
 
-  function excluir() {
-    excluirItem(item.id);
-    navigation.goBack();
+  async function excluir() {
+    setOcupado(true);
+    try {
+      await excluirItem(item.id);
+      navigation.goBack();
+    } catch (falha) {
+      avisar(falha.message, 'erro');
+      setOcupado(false);
+    }
   }
 
   return (
@@ -39,7 +59,7 @@ export default function DetalhesItem({ navigation, route, usuario, itens, regist
         <Selo texto={situacao.texto} tom={situacao.tom} />
       </View>
 
-      <Aviso mensagem={mensagem} tipo="sucesso" />
+      <Aviso mensagem={mensagem} tipo={tipoMensagem} />
 
       <Painel>
         <Linha rotulo="Quantidade" valor={item.quantidade + ' ' + item.unidade} />
@@ -48,16 +68,20 @@ export default function DetalhesItem({ navigation, route, usuario, itens, regist
         <Linha rotulo="Validade" valor={formatarData(item.validade)} />
       </Painel>
 
-      <Botao titulo="Usei 1" onPress={usarUm} disabled={item.quantidade === 0} />
+      <Botao titulo="Usei 1" onPress={usarUm} disabled={item.quantidade === 0 || ocupado} />
       <Botao titulo="Colocar na lista de compras" variante="secundario" onPress={colocarNaLista} />
 
       {ehResponsavel && <Painel>
         <Text style={estilos.etiqueta}>Área do responsável</Text>
-        <Botao titulo="Editar item" variante="secundario" onPress={function () { navigation.navigate('FormularioItem', { id: item.id }); }} />
+        <Botao titulo="Editar item" variante="secundario" onPress={function () {
+          // Limpa o aviso para ele não aparecer desatualizado na volta da edição.
+          setMensagem('');
+          navigation.navigate('FormularioItem', { id: item.id });
+        }} />
         {/* Confirmação na própria tela: Alert.alert não funciona igual no Expo Web. */}
         {confirmandoExclusao ? <>
           <Text style={estilos.texto}>Excluir "{item.nome}" do estoque?</Text>
-          <Botao titulo="Sim, excluir" variante="perigo" onPress={excluir} />
+          <Botao titulo={ocupado ? 'Excluindo…' : 'Sim, excluir'} variante="perigo" onPress={excluir} disabled={ocupado} />
           <Botao titulo="Cancelar" variante="secundario" onPress={function () { setConfirmandoExclusao(false); }} />
         </> : <Botao titulo="Excluir item" variante="perigo" onPress={function () { setConfirmandoExclusao(true); }} />}
       </Painel>}

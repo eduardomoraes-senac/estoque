@@ -1,5 +1,5 @@
 // Componentes visuais reutilizáveis. Eles recebem tudo por Props e não guardam regras do app.
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Identidade visual: tons de despensa (terracota, oliva e creme).
@@ -67,6 +67,17 @@ export function Aviso({ mensagem, tipo = 'erro' }) {
       <Text accessibilityRole="alert" style={{ color: sucesso ? cores.oliva : cores.vermelho, lineHeight: 22 }}>{mensagem}</Text>
     </View>
   );
+}
+
+// Mostra que os dados da API estão chegando ou que houve erro, com a opção de tentar de novo.
+export function EstadoDados({ carregando, erro, aoTentarNovamente }) {
+  if (carregando) {
+    return <Painel><ActivityIndicator color={cores.primaria} /><Text style={estilos.subtitulo}>Carregando o estoque…</Text></Painel>;
+  }
+  if (erro) {
+    return <Painel><Aviso mensagem={erro} /><Botao titulo="Tentar novamente" variante="secundario" onPress={aoTentarNovamente} /></Painel>;
+  }
+  return null;
 }
 
 // Selo pequeno colorido. tom: 'ok' | 'alerta' | 'perigo' | 'neutro'

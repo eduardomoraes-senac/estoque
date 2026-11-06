@@ -1,5 +1,5 @@
-// App controla a sessão e os dados em memória. As telas recebem tudo por Props (sem Redux ou Context).
-// Entrega 1: dados simulados. Entrega 2: API + MySQL. Entrega 3: JWT e permissões no back-end.
+// App controla a sessão e os dados. As telas recebem tudo por Props (sem Redux ou Context).
+// Entrega 2: os itens vêm da API (MySQL). Login, família e lista de compras continuam em memória até a Entrega 3.
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
@@ -13,7 +13,8 @@ import DetalhesItem from './screens/DetalhesItem.js';
 import FormularioItem from './screens/FormularioItem.js';
 import ListaCompras from './screens/ListaCompras.js';
 import Familia from './screens/Familia.js';
-import { itensIniciais, listaComprasInicial, membrosIniciais, proximoId } from './data/estoque.js';
+import { listaComprasInicial, membrosIniciais, proximoId } from './data/estoque.js';
+import { apagarItem, atualizarItem, cadastrarItem, consumirItem, listarItens } from './services/api.js';
 import { cores } from './components/ui.js';
 
 const Stack = createNativeStackNavigator();
@@ -21,7 +22,9 @@ const Stack = createNativeStackNavigator();
 export default function App() {
   const [usuario, setUsuario] = useState(null);
   const [membros, setMembros] = useState(membrosIniciais);
-  const [itens, setItens] = useState(itensIniciais);
+  const [itens, setItens] = useState([]);
+  const [carregandoItens, setCarregandoItens] = useState(false);
+  const [erroItens, setErroItens] = useState('');
   const [listaCompras, setListaCompras] = useState(listaComprasInicial);
   const [aviso, setAviso] = useState('');
 
@@ -31,6 +34,7 @@ export default function App() {
     if (!encontrado) { return false; }
     setAviso('');
     setUsuario(encontrado);
+    carregarItens();
     return true;
   }
 
@@ -44,26 +48,52 @@ export default function App() {
 
   function sair() {
     setUsuario(null);
+    setItens([]);
     setAviso('Você saiu da sua conta.');
   }
 
-  // ---------- Itens do estoque (entidade principal) ----------
-  function salvarItem(dados) {
-    if (dados.id) {
-      setItens(itens.map(function atualizar(item) { return item.id === dados.id ? dados : item; }));
-    } else {
-      setItens(itens.concat({ ...dados, id: proximoId(itens) }));
+  // ---------- Itens do estoque (entidade principal, salvos no MySQL pela API) ----------
+  async function carregarItens() {
+    setCarregandoItens(true);
+    setErroItens('');
+    try {
+      setItens(await listarItens());
+    } catch (erro) {
+      setErroItens(erro.message);
+    } finally {
+      setCarregandoItens(false);
     }
   }
 
-  function excluirItem(id) {
-    setItens(itens.filter(function manter(item) { return item.id !== id; }));
+  // Troca na lista apenas o item que a API acabou de devolver.
+  function substituirItem(atualizado) {
+    setItens(function trocar(atuais) {
+      return atuais.map(function atualizar(item) { return item.id === atualizado.id ? atualizado : item; });
+    });
   }
 
-  function registrarConsumo(id) {
-    setItens(itens.map(function consumir(item) {
-      return item.id === id ? { ...item, quantidade: Math.max(0, item.quantidade - 1) } : item;
-    }));
+  // As funções abaixo só mudam a tela depois que a API confirma.
+  // Se a API recusar, o erro segue para a tela que chamou, que mostra a mensagem.
+  async function salvarItem(dados) {
+    if (dados.id) {
+      substituirItem(await atualizarItem(dados.id, dados));
+    } else {
+      const criado = await cadastrarItem(dados);
+      setItens(function incluir(atuais) { return atuais.concat(criado); });
+    }
+  }
+
+  async function excluirItem(id) {
+    await apagarItem(id);
+    setItens(function remover(atuais) {
+      return atuais.filter(function manter(item) { return item.id !== id; });
+    });
+  }
+
+  async function registrarConsumo(id) {
+    const atualizado = await consumirItem(id);
+    substituirItem(atualizado);
+    return atualizado;
   }
 
   // ---------- Lista de compras ----------
@@ -116,11 +146,15 @@ export default function App() {
             <Stack.Group navigationKey={'sessao-' + usuario.id}>
               <Stack.Screen name="Inicio" options={{ title: 'Despensa em Dia' }}>
                 {function telaInicio(props) {
-                  return <Inicio {...props} usuario={usuario} itens={itens} listaCompras={listaCompras} sair={sair} />;
+                  return <Inicio {...props} usuario={usuario} itens={itens} listaCompras={listaCompras} sair={sair}
+                    carregandoItens={carregandoItens} erroItens={erroItens} recarregarItens={carregarItens} />;
                 }}
               </Stack.Screen>
               <Stack.Screen name="Estoque" options={{ title: 'Estoque' }}>
-                {function telaEstoque(props) { return <Estoque {...props} usuario={usuario} itens={itens} />; }}
+                {function telaEstoque(props) {
+                  return <Estoque {...props} usuario={usuario} itens={itens}
+                    carregandoItens={carregandoItens} erroItens={erroItens} recarregarItens={carregarItens} />;
+                }}
               </Stack.Screen>
               <Stack.Screen name="DetalhesItem" options={{ title: 'Detalhes do item' }}>
                 {function telaDetalhes(props) {

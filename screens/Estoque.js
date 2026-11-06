@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
 import CartaoItem from '../components/CartaoItem.js';
-import { Botao, Campo, Opcao, Pagina, estilos } from '../components/ui.js';
+import { Botao, Campo, EstadoDados, Opcao, Pagina, estilos } from '../components/ui.js';
 import { CATEGORIAS } from '../data/estoque.js';
 
-export default function Estoque({ navigation, usuario, itens }) {
+export default function Estoque({ navigation, usuario, itens, carregandoItens, erroItens, recarregarItens }) {
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('Todas');
 
@@ -12,6 +12,8 @@ export default function Estoque({ navigation, usuario, itens }) {
     .filter(function porCategoria(item) { return categoria === 'Todas' || item.categoria === categoria; })
     .filter(function porNome(item) { return item.nome.toLowerCase().includes(busca.trim().toLowerCase()); })
     .sort(function porNomeAZ(a, b) { return a.nome.localeCompare(b.nome); });
+  // Sem dados e com carregamento ou erro, "nenhum item" seria uma informação falsa.
+  const semDados = itens.length === 0 && (carregandoItens || erroItens !== '');
 
   return (
     <Pagina>
@@ -26,13 +28,21 @@ export default function Estoque({ navigation, usuario, itens }) {
         })}
       </ScrollView>
 
-      <Text style={estilos.subtitulo}>{filtrados.length} {filtrados.length === 1 ? 'item' : 'itens'}</Text>
+      <EstadoDados carregando={semDados && carregandoItens} erro={erroItens} aoTentarNovamente={recarregarItens} />
 
-      {filtrados.length === 0
-        ? <Text style={estilos.texto}>Nenhum item encontrado.</Text>
-        : filtrados.map(function cartao(item) {
-          return <CartaoItem key={item.id} item={item} onPress={function () { navigation.navigate('DetalhesItem', { id: item.id }); }} />;
-        })}
+      {!semDados && <>
+        <Text style={estilos.subtitulo}>{filtrados.length} {filtrados.length === 1 ? 'item' : 'itens'}</Text>
+
+        {filtrados.length === 0
+          ? <Text style={estilos.texto}>Nenhum item encontrado.</Text>
+          : filtrados.map(function cartao(item) {
+            return <CartaoItem key={item.id} item={item} onPress={function () { navigation.navigate('DetalhesItem', { id: item.id }); }} />;
+          })}
+
+        {/* O estoque é da família: outra pessoa pode ter mudado algo pelo celular dela. */}
+        <Botao titulo={carregandoItens ? 'Atualizando…' : 'Atualizar estoque'} variante="secundario"
+          disabled={carregandoItens} onPress={recarregarItens} />
+      </>}
     </Pagina>
   );
 }
